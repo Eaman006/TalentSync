@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, Variants } from "framer-motion";
 
 export default function Hero() {
   const containerVariants = {
@@ -11,11 +11,17 @@ export default function Hero() {
     },
   };
 
-  const itemVariants = {
+  const itemVariants: Variants = {
     hidden: { y: 20, opacity: 0 },
-    visible: { y: 0, opacity: 1, transition: { duration: 0.8, ease: "easeOut" } },
+    visible: { 
+      y: 0, 
+      opacity: 1, 
+      transition: { 
+        duration: 0.8, 
+        ease: "easeOut" // Now TypeScript knows this is a valid Framer Motion ease
+      } 
+    }
   };
-
   return (
     <section className="relative z-10 flex flex-col items-center justify-center min-h-screen px-4 text-center">
       <motion.div

@@ -64,11 +64,11 @@ export default function RecruiterLogin() {
         <AnimatePresence>
           {errorMessage && (
             <motion.div 
-              initial={{ opacity: 0, height: 0, mb: 0 }}
-              animate={{ opacity: 1, height: "auto", mb: 16 }}
-              exit={{ opacity: 0, height: 0, mb: 0 }}
-              className="overflow-hidden"
-            >
+  initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+  animate={{ opacity: 1, height: "auto", marginBottom: 16 }}
+  exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+  className="overflow-hidden"
+>
               <div className="flex items-center gap-2 p-3 text-sm text-red-200 border rounded-lg bg-red-500/10 border-red-500/20">
                 <AlertCircle size={16} className="text-red-400 shrink-0" />
                 <p>{errorMessage}</p>
