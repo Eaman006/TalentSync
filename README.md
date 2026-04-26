@@ -8,6 +8,7 @@
 > **An end-to-end AI recruitment pipeline. TalentSync automates resume parsing, conducts pre-screening chats, and matches candidates to job descriptions using 3072-dimensional vector search.**
 
 [**🎥 Watch the 3-Minute Demo Video Here**](https://drive.google.com/file/d/1vzBeYIlG62VyDBFZE0noVeOtfOmTP0f_/view?usp=sharing)
+## Website Link
 [**Deployed Link**](https://talent-sync-bice.vercel.app/)
 
 ---
