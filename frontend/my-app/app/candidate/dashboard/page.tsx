@@ -3,43 +3,64 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { UploadCloud, FileText, CheckCircle2, Bot, Send, User, Sparkles, Loader2, ArrowRight } from "lucide-react";
-
-// Mock data to simulate Gemini's parsed output
-const MOCK_PARSED_DATA = {
-  name: "Alex Mercer",
-  role: "Senior Frontend Engineer",
-  experience: 5,
-  skills: ["React", "TypeScript", "Next.js", "Tailwind CSS", "Node.js"],
-  bio: "Passionate frontend developer with 5 years of experience building scalable web applications. Strong focus on UX and performance optimization."
-};
+import { UploadCloud, CheckCircle2, Bot, Send, User, Sparkles, Loader2 } from "lucide-react";
 
 export default function CandidateDashboard() {
   const [uploadState, setUploadState] = useState<'idle' | 'uploading' | 'parsing' | 'complete'>('idle');
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [chatMessages, setChatMessages] = useState([
-    { role: 'ai', content: "Hi Alex! I'm TalentSync AI. I see you have some great experience with React and Next.js. Are you currently open to new roles?" }
-  ]);
+  
+  // New state to hold the real data from Gemini
+  const [parsedProfile, setParsedProfile] = useState<any>(null);
+  
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([]);
   const [currentMessage, setCurrentMessage] = useState("");
+
+  const processResume = async (uploadedFile: File) => {
+    setUploadState('uploading');
+    
+    try {
+      const formData = new FormData();
+      formData.append("file", uploadedFile);
+  
+      setUploadState('parsing');
+      
+      // Call our Next.js API Route
+      const response = await fetch("/api/parse-resume", {
+        method: "POST",
+        body: formData,
+      });
+  
+      if (!response.ok) throw new Error("Failed to parse resume");
+  
+      const data = await response.json();
+      
+      setParsedProfile(data);
+      
+      // Dynamically create the first message based on their real resume!
+      const firstName = data.name ? data.name.split(" ")[0] : "there";
+      const topSkills = data.skills && data.skills.length >= 2 
+        ? `${data.skills[0]} and ${data.skills[1]}` 
+        : "your tech stack";
+
+      setChatMessages([
+        { role: 'ai', content: `Hi ${firstName}! I'm TalentSync AI. I see you have some great experience with ${topSkills}. Are you currently open to new roles?` }
+      ]);
+
+      setUploadState('complete');
+  
+    } catch (error) {
+      console.error(error);
+      alert("Something went wrong parsing the resume. Please try again.");
+      setUploadState('idle'); 
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
-      simulateProcessing();
+      processResume(e.target.files[0]);
     }
-  };
-
-  const simulateProcessing = () => {
-    setUploadState('uploading');
-    // Simulate File Upload
-    setTimeout(() => {
-      setUploadState('parsing');
-      // Simulate Gemini AI Parsing Resume
-      setTimeout(() => {
-        setUploadState('complete');
-      }, 2500);
-    }, 1500);
   };
 
   const handleSendMessage = (e: React.FormEvent) => {
@@ -53,7 +74,7 @@ export default function CandidateDashboard() {
     setTimeout(() => {
       setChatMessages(prev => [...prev, { 
         role: 'ai', 
-        content: "That's great to hear! Given your 5 years of experience, what kind of engineering challenges are you looking to tackle next?" 
+        content: `That's great to hear! Given your ${parsedProfile?.experience || 'recent'} years of experience, what kind of engineering challenges are you looking to tackle next?` 
       }]);
     }, 1000);
   };
@@ -67,7 +88,7 @@ export default function CandidateDashboard() {
         </Link>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-400">Candidate Portal</span>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 border border-white/20" />
+          <div className="w-8 h-8 border rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 border-white/20" />
         </div>
       </nav>
 
@@ -83,8 +104,8 @@ export default function CandidateDashboard() {
               exit={{ opacity: 0, scale: 0.95, filter: "blur(10px)" }}
               className="max-w-2xl mx-auto mt-12 md:mt-24"
             >
-              <div className="text-center mb-8">
-                <h1 className="text-3xl md:text-4xl font-bold mb-3 tracking-tight">Let's build your AI profile.</h1>
+              <div className="mb-8 text-center">
+                <h1 className="mb-3 text-3xl font-bold tracking-tight md:text-4xl">Let's build your AI profile.</h1>
                 <p className="text-gray-400">Upload your resume. Our AI will handle the data entry.</p>
               </div>
 
@@ -106,10 +127,10 @@ export default function CandidateDashboard() {
 
                 {uploadState === 'idle' ? (
                   <div className="flex flex-col items-center">
-                    <div className="w-16 h-16 mb-4 rounded-full bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+                    <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-cyan-500/10 text-cyan-400">
                       <UploadCloud size={32} />
                     </div>
-                    <p className="text-lg font-medium text-white mb-1">Click or drag PDF to upload</p>
+                    <p className="mb-1 text-lg font-medium text-white">Click or drag PDF to upload</p>
                     <p className="text-sm text-gray-500">Max file size: 5MB</p>
                   </div>
                 ) : (
@@ -117,9 +138,9 @@ export default function CandidateDashboard() {
                     <motion.div 
                       animate={{ rotate: 360 }} 
                       transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                      className="w-16 h-16 rounded-full border-4 border-cyan-500/20 border-t-cyan-500 flex items-center justify-center"
+                      className="flex items-center justify-center w-16 h-16 border-4 rounded-full border-cyan-500/20 border-t-cyan-500"
                     >
-                      <Sparkles className="text-cyan-400 absolute" size={24} />
+                      <Sparkles className="absolute text-cyan-400" size={24} />
                     </motion.div>
                     
                     <div className="space-y-2">
@@ -128,7 +149,7 @@ export default function CandidateDashboard() {
                       </p>
                       <div className="flex items-center justify-center gap-2 text-sm text-gray-400">
                         {uploadState === 'parsing' && <Loader2 size={14} className="animate-spin" />}
-                        <span>{uploadState === 'parsing' ? 'Generating vector embeddings' : 'Securing file'}</span>
+                        <span>{uploadState === 'parsing' ? 'Reading data with Gemini 1.5...' : 'Securing file'}</span>
                       </div>
                     </div>
                   </div>
@@ -138,15 +159,15 @@ export default function CandidateDashboard() {
           )}
 
           {/* State 3: Complete & Chat */}
-          {uploadState === 'complete' && (
+          {uploadState === 'complete' && parsedProfile && (
             <motion.div 
               key="dashboard-section"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+              className="grid grid-cols-1 gap-6 lg:grid-cols-12"
             >
               {/* Left Column: Parsed Profile */}
-              <div className="lg:col-span-4 space-y-6">
+              <div className="space-y-6 lg:col-span-4">
                 <div className="bg-white/[0.02] border border-white/10 rounded-2xl p-6 relative overflow-hidden">
                   <div className="absolute top-0 right-0 p-4">
                     <span className="flex items-center gap-1 text-xs font-medium text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full border border-emerald-400/20">
@@ -154,21 +175,21 @@ export default function CandidateDashboard() {
                     </span>
                   </div>
                   
-                  <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500 flex items-center justify-center text-2xl font-bold text-white mb-4">
-                    {MOCK_PARSED_DATA.name.charAt(0)}
+                  <div className="flex items-center justify-center w-16 h-16 mb-4 text-2xl font-bold text-white rounded-full bg-gradient-to-tr from-cyan-500 to-blue-500">
+                    {parsedProfile.name?.charAt(0) || "U"}
                   </div>
-                  <h2 className="text-2xl font-bold text-white mb-1">{MOCK_PARSED_DATA.name}</h2>
-                  <p className="text-cyan-400 font-medium text-sm mb-4">{MOCK_PARSED_DATA.role} • {MOCK_PARSED_DATA.experience} Yrs Exp</p>
+                  <h2 className="mb-1 text-2xl font-bold text-white">{parsedProfile.name}</h2>
+                  <p className="mb-4 text-sm font-medium text-cyan-400">{parsedProfile.role} • {parsedProfile.experience} Yrs Exp</p>
                   
                   <div className="space-y-4">
                     <div>
-                      <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Summary</h3>
-                      <p className="text-sm text-gray-300 leading-relaxed">{MOCK_PARSED_DATA.bio}</p>
+                      <h3 className="mb-2 text-xs font-semibold tracking-wider uppercase text-gray-500">Summary</h3>
+                      <p className="text-sm leading-relaxed text-gray-300">{parsedProfile.bio}</p>
                     </div>
                     <div>
-                      <h3 className="text-xs text-gray-500 uppercase tracking-wider font-semibold mb-2">Top Skills</h3>
+                      <h3 className="mb-2 text-xs font-semibold tracking-wider uppercase text-gray-500">Top Skills</h3>
                       <div className="flex flex-wrap gap-2">
-                        {MOCK_PARSED_DATA.skills.map(skill => (
+                        {parsedProfile.skills?.map((skill: string) => (
                           <span key={skill} className="text-xs px-2.5 py-1 bg-white/5 border border-white/10 rounded-md text-gray-300">
                             {skill}
                           </span>
@@ -184,14 +205,14 @@ export default function CandidateDashboard() {
                 {/* Chat Header */}
                 <div className="flex items-center justify-between px-6 py-4 border-b border-white/10 bg-white/[0.01]">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500/20 flex items-center justify-center text-indigo-400 border border-indigo-500/30">
+                    <div className="flex items-center justify-center w-10 h-10 border rounded-full bg-indigo-500/20 text-indigo-400 border-indigo-500/30">
                       <Bot size={20} />
                     </div>
                     <div>
-                      <h3 className="font-semibold text-white flex items-center gap-2">
+                      <h3 className="flex items-center gap-2 font-semibold text-white">
                         TalentSync AI <span className="text-[10px] bg-indigo-500 text-white px-1.5 py-0.5 rounded uppercase tracking-wider">Scout</span>
                       </h3>
-                      <p className="text-xs text-green-400 flex items-center gap-1">
+                      <p className="flex items-center gap-1 text-xs text-green-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" /> Online
                       </p>
                     </div>
@@ -199,7 +220,7 @@ export default function CandidateDashboard() {
                 </div>
 
                 {/* Chat Messages */}
-                <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                <div className="flex-1 p-6 space-y-6 overflow-y-auto">
                   {chatMessages.map((msg, idx) => (
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
@@ -218,7 +239,7 @@ export default function CandidateDashboard() {
                 </div>
 
                 {/* Chat Input */}
-                <div className="p-4 bg-black/50 border-t border-white/10">
+                <div className="p-4 border-t bg-black/50 border-white/10">
                   <form onSubmit={handleSendMessage} className="relative flex items-center">
                     <input 
                       type="text" 
@@ -230,7 +251,7 @@ export default function CandidateDashboard() {
                     <button 
                       type="submit"
                       disabled={!currentMessage.trim()}
-                      className="absolute right-2 p-2 text-indigo-400 hover:text-indigo-300 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
+                      className="absolute p-2 transition-colors rounded-lg right-2 text-indigo-400 hover:text-indigo-300 hover:bg-white/5 disabled:opacity-50"
                     >
                       <Send size={18} />
                     </button>
