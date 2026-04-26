@@ -63,5 +63,64 @@ cd [frontend/my-app]
 ```bash
 npm install
 ```
+### 3. Set up Environment Variables
+Create a .env.local file in the root directory and add your keys:
+```bash
+# Google Gemini API
+GEMINI_API_KEY="your_gemini_api_key"
+
+# Supabase (Database & Storage)
+NEXT_PUBLIC_SUPABASE_URL="your_supabase_project_url"
+SUPABASE_SERVICE_ROLE_KEY="your_supabase_service_role_key"
+
+# Firebase (Authentication)
+NEXT_PUBLIC_FIREBASE_API_KEY="your_firebase_api_key"
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN="your_firebase_auth_domain"
+NEXT_PUBLIC_FIREBASE_PROJECT_ID="your_firebase_project_id"
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET="your_firebase_storage_bucket"
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID="your_firebase_messaging_sender_id"
+NEXT_PUBLIC_FIREBASE_APP_ID="your_firebase_app_id"
+```
+### 4. Supabase Database Setup
+You will need to run the following SQL in your Supabase SQL Editor to initialize the vector database and storage bucket:
+```bash
+-- Enable Vector Search
+create extension if not exists vector;
+
+-- Create Candidates Table
+create table candidates (
+  id bigint primary key generated always as identity,
+  name text not null,
+  role text not null,
+  experience integer default 0,
+  skills text[] default '{}',
+  bio text,
+  resume_url text,
+  embedding vector(3072), 
+  created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+-- Create Storage Bucket
+insert into storage.buckets (id, name, public) values ('resumes', 'resumes', true);
+create policy "Allow public uploads" on storage.objects for insert to public with check ( bucket_id = 'resumes' );
+create policy "Allow public views" on storage.objects for select to public using ( bucket_id = 'resumes' );
+
+-- Create Vector Search Function
+create or replace function match_candidates (
+  query_embedding vector(3072),
+  match_threshold float,
+  match_count int
+)
+returns table (id bigint, name text, role text, experience integer, skills text[], bio text, resume_url text, similarity float)
+language sql stable as $$
+  select id, name, role, experience, skills, bio, resume_url, 1 - (embedding <=> query_embedding) as similarity
+  from candidates where 1 - (embedding <=> query_embedding) > match_threshold
+  order by embedding <=> query_embedding limit match_count;
+$$;
+```
+### 5. Start the Development Server
+```bash
+npm run dev
+```
 
 
