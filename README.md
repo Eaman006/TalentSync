@@ -55,4 +55,13 @@ Want to run TalentSync on your own machine? Follow these steps:
 ### 1. Clone the repository
 ```bash
 git clone [https://github.com/](https://github.com/)[Eaman006]/[TalentSync].git
+```
+```bash
 cd [frontend/my-app]
+```
+### 2. Install dependencies
+```bash
+npm install
+```
+
+
